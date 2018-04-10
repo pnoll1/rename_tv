@@ -10,7 +10,8 @@ import os
 import shutil
 from pathlib import Path
 from sys import argv
-# os.getcwd()
+import requests
+
 directory_video = Path('/home/pat/Videos/')
 
 
@@ -56,24 +57,22 @@ def s_a_d(directory, targets):
                 paths_original.append(path_original)
                 paths_new.append(path_new)
     return paths_original,paths_new
-# create folder on server and/or move files in folder to server
-# def
+
 # translates command line arguments into format for generate
 episode_string = argv[1]
 episode_list = episode_string.split(',') # list containing strings
-# episode_list = episode_list[0]
 # runs generate to create dictionary for what to find and replace
 episode_list_formatted = generate(episode_list)
-
+# renames files to Kodi format and keeps paths for processing
 paths_discs_original, paths_discs_new = s_a_d(directory_video, episode_list_formatted)
-#operations to get show name
+# operations to get show name
 disc_number = list(episode_list_formatted.keys())
-season_number = argv[2].upper()
-disc_identifier = '_'+season_number+disc_number[-1]
 path_show = paths_discs_original[0].stem
 for d in disc_number:
-    disc_identifier = '_'+season_number+d
+    season = 1
+    disc_identifier = '_S'+str(season)+d
     path_show = path_show.replace(disc_identifier,'')
+    season += 1
 # create folder on server if needed
 tv_directory = '/home/pat/NAS/TV/'
 try:
@@ -84,5 +83,7 @@ except  FileExistsError:
 for path in paths_discs_new:
     shutil.move(path,tv_directory+path_show+'/'+path.name)
 
-# update kodi database
+# Tell Kodi to scan for new video files
+req = requests.get('http://desktop:8080/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1}')
+req2 = requests.get('http://192.168.1.6:8080/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1}')
 # check database and remove files from wanted list

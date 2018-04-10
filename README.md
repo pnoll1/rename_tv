@@ -4,9 +4,12 @@ Program is used to rewrite file names so Kodi will index properly.
 input:comma seperated values of episodes per disc and disc image files in directory
 output: renamed files
 
-example:
-- change directory to direrctory where files are: /home/user/Videos
-- check disc images are named show_s1d1, show_s2d2 etc.
-- feed values to generate:  generate(8,7,7)
-- replace file names with newly generated: s_a_d(directory,dict)
-- output: show_s1e01_02_03_04_05_06_07_08,show_s1e09_10_11_12_13_14_15 etc.
+Usage:
+1. Rip discs to directory with nothing in it and name disc files show_s1d1, show_s2d2 etc
+2. call rename_tv from command line with episodes per disc seperated by commas
+ - python3 rename_tv.py 7,8,8
+
+Setup:
+- directory_video is directory where files are ripped to
+- tv_directory is where kodi tv library is located
+- change url and port in requests to Kodi to your url and port
