@@ -63,16 +63,18 @@ episode_string = argv[1]
 episode_list = episode_string.split(',') # list containing strings
 # runs generate to create dictionary for what to find and replace
 episode_list_formatted = generate(episode_list)
+# remove map files
+os.chdir(directory_video)
+os.system('rm *.map')
 # renames files to Kodi format and keeps paths for processing
 paths_discs_original, paths_discs_new = s_a_d(directory_video, episode_list_formatted)
 # operations to get show name
 disc_number = list(episode_list_formatted.keys())
 path_show = paths_discs_original[0].stem
+season = path_show[-3]
 for d in disc_number:
-    season = 1
     disc_identifier = '_S'+str(season)+d
     path_show = path_show.replace(disc_identifier,'')
-    season += 1
 # create folder on server if needed
 tv_directory = '/home/pat/NAS/TV/'
 try:
@@ -84,6 +86,12 @@ for path in paths_discs_new:
     shutil.move(path,tv_directory+path_show+'/'+path.name)
 
 # Tell Kodi to scan for new video files
-req = requests.get('http://desktop:8080/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1}')
-req2 = requests.get('http://192.168.1.6:8080/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1}')
+try:
+    req = requests.get('http://desktop:8080/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1}')
+except  requests.exceptions.RequestException as e:
+    print("Couldn't reach Desktop Kodi")
+try:
+    req2 = requests.get('http://192.168.1.6:8080/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1}')
+except  requests.exceptions.RequestException as e:
+    print("Couldn't reach RPi")
 # check database and remove files from wanted list
