@@ -4,17 +4,27 @@
 Created on Tue May 30 18:18:53 2017
 
 @author: pat
-Require python 3.6 for os functions
+Require python 3.6+ for os functions
 """
 import os
 import shutil
 from pathlib import Path
-from sys import argv
+import argparse
 import requests
 import re
 
+parser = argparse.ArgumentParser(description='renumber tv episodes for proper indexing in kodi. file names or folders must follow show_S1D1 format')
+parser.add_argument('--episodes-per-disc', nargs='+',type=int, help='episodes per disc')
+parser.add_argument('--many-per-file', action='store_true', help='many videos in one file, common for isos')
+parser.add_argument('--one-per-file', action='store_true', help='1 video per file, common for mkv')
+parser.add_argument('--start', nargs='?', default=1, type=int, help='episode number to start numbering')
+args = parser.parse_args()
+
 directory_video = Path('/home/pat/Videos/')
 tv_directory = Path('/home/pat/NAS/TV/')
+# test settings
+#directory_video = Path('/home/pat/video_test/')
+#tv_directory = Path('/home/pat/Videos/')
 
 def generate(episodes):
     '''input: comma seperarted list of episodes on each disc
@@ -61,7 +71,7 @@ def s_a_d(directory, targets):
                 paths_new.append(path_new)
     return paths_original,paths_new
 
-def s_g_d(directory, episodes):
+def s_g_d(directory, episodes, start):
     '''grabs folder name, seperates out relevant info, generates new filenames,
     replaces old filenames with new'''
     # grab folder name
@@ -71,44 +81,43 @@ def s_g_d(directory, episodes):
     # grab show name from folder name
     # grab season from folder name
     path_show = path_show.stem
-    season_number = path_show[-3]
-    show_list = []
-    disc_identifier = '_S'+str(season_number)+'D1'
-    show_name = path_show.replace(disc_identifier,'')
-    # construct replacement strings        
-    for i in range(1, (episodes+1)):
-        episode = 'E' + str(i)
-        path_show = Path(show_name +'_S' + season_number + episode + '.mkv')
-        show_list.append(path_show)
+    show_name = re.split(r'_S\d', path_show)[0]
     # create folder on server if needed
     try:
         os.mkdir(tv_directory.joinpath(show_name))
     except FileExistsError:
         pass
-    j = 0
+    #j = 0
+    i = start
     paths =[]
     # loop through each disc folder, low to high
     for directory_name in sorted(directory.iterdir()):
         os.chdir(directory_name)
+        season_number = directory_name.as_posix()[-3]
         # loop through each file in folder, low to high
         for filename in sorted(Path.cwd().iterdir()):
+            #create new file name
+            new_path = Path(show_name +'_S' + season_number + 'E' + str(i) + '.mkv')
             # rename each file, then move
-            os.rename(filename, show_list[j])
-            print('Transferring file {}'.format(str(j+1)))
-            shutil.move(show_list[j],tv_directory.joinpath(show_name,show_list[j]))
-            print('Finished Transferring file {}'.format(str(j+1)))
-            paths.append(show_list[j])
-            if j == episodes:
+            os.rename(filename, new_path)
+            print('Transferring file {}'.format('S' + season_number + 'E' + str(i)))
+            # todo: set read only permissions
+            shutil.move(new_path,tv_directory.joinpath(show_name,new_path))
+            print('Finished Transferring file {}'.format('S' + season_number + 'E' + str(i)))
+            #paths.append(show_list[j])
+            paths.append(new_path)
+            #if j == episodes:
+            #    break
+            if i == episodes:
                 break
-            j += 1
+            #j += 1
+            i += 1
     return paths, path_show
-# translates command line arguments into format for generate
-org_type = argv[2]
-episode_string = argv[1]
-episode_list = episode_string.split(',') # list containing strings
+
+episode_list = args.episodes_per_disc
 # runs generate to create dictionary for what to find and replace
-if org_type == 1:
-    episode_list_formatted = generate(episode_list, org_type)
+if args.many_per_file:
+    episode_list_formatted = generate(episode_list)
     # remove map files
     os.chdir(directory_video)
     os.system('rm *.map')
@@ -129,12 +138,13 @@ if org_type == 1:
     # move files
     for path in paths_discs_new:
         shutil.move(path,tv_directory+path_show+'/'+path.name)
-else:
+elif args.one_per_file:
     episodes = 0
     for i in episode_list:
         episodes += int(i)
-    paths, path_show = s_g_d(directory_video, episodes)
-
+    paths, path_show = s_g_d(directory_video, episodes, args.start)
+else:
+    print('need to know how many episodes per file')
 # Tell Kodi to scan for new video files
 try:
     req = requests.get('http://desktop:8080/jsonrpc?request={"jsonrpc":"2.0","method":"VideoLibrary.Scan","id":1}')
