@@ -99,8 +99,8 @@ def s_g_d(directory, episodes, start):
             new_path = Path(show_name +'_S' + season_number + 'E' + str(i) + '.mkv')
             # rename each file, then move
             os.rename(filename, new_path)
+            os.chmod(new_path, 0o444)
             print('Transferring file {}'.format('S' + season_number + 'E' + str(i)))
-            # todo: set read only permissions
             shutil.move(new_path,tv_directory.joinpath(show_name,new_path))
             print('Finished Transferring file {}'.format('S' + season_number + 'E' + str(i)))
             #paths.append(show_list[j])
