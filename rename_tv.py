@@ -27,11 +27,10 @@ tv_directory = Path('/home/pat/NAS/TV/')
 #tv_directory = Path('/home/pat/Videos/')
 
 def generate(episodes):
-    '''input: comma seperarted list of episodes on each disc
+    '''input: list of episodes on each disc
     output: dictionary with keys that are disc numbers and
     values of matching strings for episodes on each disc
-    org_type = 1 is multiple epsisode per file
-    org_type = 0 is 1 episode per file in folders by disc'''
+    '''
     targets = {}
     n = 1
     m = 0
